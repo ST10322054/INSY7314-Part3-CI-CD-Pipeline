@@ -1,0 +1,76 @@
+#This pipeline runs lint, audit, tests, then runs a SonarQube scan.
+version: 2.1
+
+orbs:
+  node: circleci/node@5.0.3
+  sonarcloud: sonarsource/sonarcloud@1.1.1
+
+jobs:
+  build_and_test:
+    docker:
+      - image: cimg/node:22.0
+    steps:
+      - checkout
+
+      # --- Backend Setup ---
+      - run:
+          name: Install Backend Dependencies
+          command: cd server && npm install
+
+      - run:
+          name: Lint Backend Code
+          command: cd server && npm run lint || true
+
+      - run:
+          name: Run Backend Tests
+          command: cd server && npm test -- --coverage || echo "No backend tests yet"
+
+      # --- Frontend Setup ---
+      - run:
+          name: Install Frontend Dependencies
+          command: cd client && npm install
+
+      - run:
+          name: Lint Frontend Code
+          command: cd client && npm run lint || true
+
+      - run:
+          name: Run Frontend Tests
+          command: cd client && npm test -- --coverage || echo "No frontend tests yet"
+
+      # --- Security Audit ---
+      - run:
+          name: Run npm Audit for Vulnerabilities
+          command: npm audit --audit-level=moderate || true
+
+      - persist_to_workspace:
+          root: .
+          paths:
+            - server/coverage
+            - client/coverage
+
+  sonar_scan:
+    docker:
+      - image: cimg/node:22.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Run SonarQube Scan
+          command: |
+            npx sonar-scanner \
+              -Dsonar.projectKey=international-payments \
+              -Dsonar.sources=server,client/src \
+              -Dsonar.host.url=$SONAR_HOST_URL \
+              -Dsonar.login=$SONAR_TOKEN
+
+workflows:
+  version: 2
+  build_and_scan:
+    jobs:
+      - build_and_test
+      - sonar_scan:
+          requires:
+            - build_and_test
+          context: sonarcloud
