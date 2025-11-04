@@ -3,7 +3,6 @@ version: 2.1
 
 orbs:
   node: circleci/node@5.0.3
-  sonarcloud: sonarsource/sonarcloud@1.1.1
 
 jobs:
   build_and_test:
@@ -15,55 +14,60 @@ jobs:
       # --- Backend Setup ---
       - run:
           name: Install Backend Dependencies
-          command: cd server && npm install
+          working_directory: server
+          command: npm install
 
       - run:
           name: Lint Backend Code
-          command: cd server && npm run lint || true
+          working_directory: server
+          command: npm run lint || echo "Linting completed with warnings"
+
+      - run:
+          name: Run Backend Audit
+          working_directory: server
+          command: npm audit --audit-level=moderate || echo "Audit completed with warnings"
 
       - run:
           name: Run Backend Tests
-          command: cd server && npm test -- --coverage || echo "No backend tests yet"
+          working_directory: server
+          command: npm test || echo "No backend tests yet"
 
       # --- Frontend Setup ---
       - run:
           name: Install Frontend Dependencies
-          command: cd client && npm install
+          working_directory: client
+          command: npm install
 
       - run:
           name: Lint Frontend Code
-          command: cd client && npm run lint || true
+          working_directory: client
+          command: npm run lint || echo "Linting completed with warnings"
+
+      - run:
+          name: Run Frontend Audit
+          working_directory: client
+          command: npm audit --audit-level=moderate || echo "Audit completed with warnings"
 
       - run:
           name: Run Frontend Tests
-          command: cd client && npm test -- --coverage || echo "No frontend tests yet"
+          working_directory: client
+          command: npm test || echo "No frontend tests yet"
 
-      # --- Security Audit ---
-      - run:
-          name: Run npm Audit for Vulnerabilities
-          command: npm audit --audit-level=moderate || true
-
-      - persist_to_workspace:
-          root: .
-          paths:
-            - server/coverage
-            - client/coverage
+      # Note: Removed persist_to_workspace since coverage isn't generated yet
 
   sonar_scan:
     docker:
-      - image: cimg/node:22.0
+      - image: sonarsource/sonar-scanner-cli:latest
     steps:
       - checkout
-      - attach_workspace:
-          at: .
       - run:
           name: Run SonarQube Scan
           command: |
-            npx sonar-scanner \
+            sonar-scanner \
               -Dsonar.projectKey=international-payments \
               -Dsonar.sources=server,client/src \
               -Dsonar.host.url=$SONAR_HOST_URL \
-              -Dsonar.login=$SONAR_TOKEN
+              -Dsonar.token=$SONAR_TOKEN
 
 workflows:
   version: 2
@@ -73,4 +77,3 @@ workflows:
       - sonar_scan:
           requires:
             - build_and_test
-          context: sonarcloud

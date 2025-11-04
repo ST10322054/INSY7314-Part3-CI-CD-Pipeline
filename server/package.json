@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "lint": "eslint . --ext .js --max-warnings=50"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +27,7 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "eslint": "^8.57.0",
     "nodemon": "^3.1.10"
   }
 }
