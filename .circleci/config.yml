@@ -64,7 +64,7 @@ jobs:
           name: Run SonarQube Scan
           command: |
             sonar-scanner \
-              -Dsonar.projectKey=international-payments \
+              -Dsonar.projectKey=ST10322054_INSY7314-Part3-CI-CD-Pipeline \
               -Dsonar.organization=$SONAR_ORGANIZATION \
               -Dsonar.sources=server,client/src \
               -Dsonar.host.url=$SONAR_HOST_URL \
