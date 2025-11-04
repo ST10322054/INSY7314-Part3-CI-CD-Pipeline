@@ -65,9 +65,11 @@ jobs:
           command: |
             sonar-scanner \
               -Dsonar.projectKey=international-payments \
+              -Dsonar.organization=$SONAR_ORGANIZATION \
               -Dsonar.sources=server,client/src \
               -Dsonar.host.url=$SONAR_HOST_URL \
-              -Dsonar.token=$SONAR_TOKEN
+              -Dsonar.token=$SONAR_TOKEN \
+              -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/build/**
 
 workflows:
   version: 2
