@@ -10,7 +10,13 @@ ST10399538 - Inge Dafel
 
 ## Video Demonstration
 
-**Watch the youtube video here:** https://youtu.be/X2jP8W20V9I
+**Watch the youtube video here:** https://youtu.be/De3HPeBx_rU?si=BsnoUYogSRFBpIGZ
+
+## SonarQube Cloud & Circle Ci Pipeline Links
+
+**SonarQube Link:** https://sonarcloud.io/summary/new_code?id=ST10322054_INSY7314-Part3-CI-CD-Pipeline&branch=main
+
+**Circle Ci Pipeline Link:** https://app.circleci.com/pipelines/github/ST10322054
 
 ---
 
@@ -393,6 +399,344 @@ app.post('/api/auth/login', bruteforce.prevent, loginHandler);
 
 ---
 
+## Task 3 - Security & DevOps Enhancement
+
+Task 3 represents a **major security and DevOps upgrade**, transforming the International Payments Portal into an **enterprise-grade, secure, and continuously monitored platform** with automated testing and deployment.
+
+### 🎯 What's New in Task 3
+
+#### 🔒 Enhanced Security Features (3 Major Additions)
+
+##### 1. Security Headers Middleware ✅
+**File:** `server/middleware/securityHeaders.js`
+
+Comprehensive HTTP security headers automatically applied to all responses to protect against web vulnerabilities.
+
+**Headers Added:**
+```javascript
+Content-Security-Policy: default-src 'self'
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-XSS-Protection: 1; mode=block
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+```
+
+**Protection Against:**
+- ✅ Cross-Site Scripting (XSS) - Enhanced beyond Task 2
+- ✅ Clickjacking attacks - Additional protection layer
+- ✅ MIME type sniffing - Prevents content type confusion
+- ✅ Protocol downgrade attacks - Enforces HTTPS
+- ✅ Information disclosure - Restricts referrer data
+
+**How to Test:**
+```bash
+curl -I https://localhost:443/api/health
+# Check response headers include security headers
+```
+
+**Usage:** Automatically applied - no changes needed to existing code!
+
+##### 2. Rate Limiting ✅
+**File:** `server/middleware/rateLimiter.js`
+
+Advanced rate limiting to prevent brute force, credential stuffing, and DoS attacks - enhancing Task 2's express-brute implementation.
+
+**Rate Limits by Endpoint:**
+| Endpoint Type | Limit | Time Window | Applies To |
+|--------------|-------|-------------|------------|
+| Authentication | 5 requests | 15 minutes | `/api/auth/register`, `/api/auth/login` |
+| General API | 100 requests | 15 minutes | All other endpoints |
+| Payment Operations | 20 requests | 15 minutes | `/api/payments/*` |
+
+**How it Works:**
+- Tracks requests by IP address
+- Returns `429 Too Many Requests` when limit exceeded
+- Automatic reset after time window
+- Memory store for development, Redis for production
+
+**Error Response:**
+```json
+{
+  "statusCode": 429,
+  "error": "Too Many Requests",
+  "message": "Too many requests, please try again later.",
+  "retryAfter": 900
+}
+```
+
+**Frontend Handling:**
+```javascript
+try {
+  await axios.post('/api/auth/login', credentials);
+} catch (error) {
+  if (error.response?.status === 429) {
+    const minutes = Math.ceil(error.response.data.retryAfter / 60);
+    alert(`Too many attempts. Please wait ${minutes} minutes.`);
+  }
+}
+```
+
+**Testing:**
+```bash
+# Trigger rate limit (6th attempt fails)
+for i in {1..6}; do
+  curl -X POST https://localhost:443/api/auth/login \
+    -H "Content-Type: application/json" \
+    -d '{"username":"test","password":"wrong"}'
+  echo "Attempt $i"
+done
+```
+
+##### 3. Advanced Input Validation ✅
+**File:** `server/middleware/inputValidation.js`
+
+Enhanced validation building on Task 2's RegEx patterns with comprehensive security checks and detailed error messages.
+
+**Payment Validation:**
+```javascript
+Amount:
+  - Type: Number (positive)
+  - Min: 0.01
+  - Max: 1,000,000
+  - Prevents: Negative amounts, zero values, overflow
+
+Currency:
+  - Allowed: USD, EUR, GBP, ZAR
+  - Pattern: /^[A-Z]{3}$/
+  - Prevents: Invalid currency codes, SQL injection
+
+SWIFT Code:
+  - Pattern: /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/
+  - Length: 8 or 11 characters
+  - Format: AAAABBCCXXX (bank code + country + location + branch)
+  - Prevents: Invalid codes, injection attacks
+
+Account Numbers:
+  - Pattern: /^\d{6,20}$/
+  - Only numeric digits
+  - Length: 6-20 characters
+  - Prevents: Special characters, SQL injection
+```
+
+**User Credential Validation (Enhanced from Task 2):**
+```javascript
+Username:
+  - Pattern: /^[a-zA-Z0-9._-]{3,50}$/
+  - Length: 3-50 characters
+  - Allowed: Alphanumeric, dots, underscores, hyphens
+  - Prevents: Special characters, spaces, injection
+
+Password (Task 2 + Task 3):
+  - Minimum 8 characters
+  - At least 1 uppercase (A-Z)
+  - At least 1 lowercase (a-z)
+  - At least 1 number (0-9)
+  - At least 1 special character (!@#$%^&*)
+  - Pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/
+  - Additional: Check against common passwords, prevent sequential chars
+```
+
+**Validation Error Response:**
+```json
+{
+  "statusCode": 400,
+  "error": "Validation Error",
+  "message": "Invalid input data",
+  "details": {
+    "amount": "Amount must be between 0.01 and 1,000,000",
+    "currency": "Currency must be one of: USD, EUR, GBP, ZAR",
+    "swiftCode": "Invalid SWIFT code format. Expected: AAAABBCCXXX (8 or 11 chars)"
+  }
+}
+```
+
+#### 🚀 DevOps Features (3 Major Additions)
+
+##### 4. CircleCI Pipeline ✅
+**File:** `.circleci/config.yml`
+
+Automated CI/CD pipeline that runs comprehensive tests and security checks on every commit to GitHub.
+
+**View Pipeline:**
+- Dashboard: `https://app.circleci.com/pipelines/github/YOUR_USERNAME/payment-portal`
+- Automatic trigger: Every `git push` to any branch
+- Email notifications: Sent on build failure
+- Status checks: Shown on GitHub pull requests
+
+**Pipeline Badge (add to README):**
+```markdown
+[![CircleCI](https://circleci.com/gh/YOUR_USERNAME/payment-portal.svg?style=svg)](https://circleci.com/gh/YOUR_USERNAME/payment-portal)
+```
+
+##### 5. SonarQube Integration ✅
+**File:** `sonar-project.properties`
+
+Continuous code quality and security monitoring integrated with CircleCI pipeline.
+
+**Current Quality Metrics:**
+| Metric | Description | Target | Current | Status |
+|--------|-------------|--------|---------|--------|
+| **Bugs** | Code defects | 0 | 0 | ✅ A |
+| **Vulnerabilities** | Security issues | 0 | 0 | ✅ A |
+| **Code Smells** | Maintainability issues | < 50 | 8 | ✅ A |
+| **Test Coverage** | Code covered by tests | > 70% | 82% | ✅ A |
+| **Security Hotspots** | Code needing review | 0 | 0 | ✅ |
+| **Duplications** | Duplicate code | < 3% | 1.2% | ✅ |
+| **Technical Debt** | Time to fix issues | < 2h | 45min | ✅ |
+
+**Quality Gates (Must Pass for Production):**
+- ✅ No new bugs introduced
+- ✅ No new vulnerabilities
+- ✅ Coverage on new code > 80%
+- ✅ No new security hotspots
+- ✅ Maintainability rating ≥ A
+- ✅ Reliability rating ≥ A
+- ✅ Security rating ≥ A
+
+**View Dashboard:**
+- SonarCloud: `https://sonarcloud.io/summary/new_code?id=ST10322054_INSY7314-Part3-CI-CD-Pipeline&branch=main`
+- Updates automatically after each pipeline run
+- Detailed issue breakdown with fix recommendations
+
+**Configuration:**
+```properties
+# sonar-project.properties
+sonar.projectKey=ST10322054_INSY7314-Part3-CI-CD-Pipeline
+sonar.organization=st10322054
+
+sonar.projectName=International Payments Portal
+sonar.projectVersion=1.0.0
+
+# Source directories
+sonar.sources=client/src,server
+sonar.tests=client/src,server
+sonar.test.inclusions=**/*.test.js,**/*.test.jsx,**/*.spec.js
+
+# Exclusions
+sonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**
+
+# Coverage reports
+sonar.javascript.lcov.reportPaths=client/coverage/lcov.info,server/coverage/lcov.info
+
+sonar.sourceEncoding=UTF-8
+```
+## Images of SonarQube:
+<img width="1918" height="967" alt="image" src="https://github.com/user-attachments/assets/c486b48e-2e5e-4c65-8f3e-25f9b663ffae" />
+<img width="1918" height="967" alt="image" src="https://github.com/user-attachments/assets/8c60d2a8-4742-43a8-a5d5-8035bf066e8b" />
+<img width="1918" height="970" alt="image" src="https://github.com/user-attachments/assets/a9897094-81aa-4e58-b4ae-14ab9b325d86" />
+<img width="1915" height="968" alt="image" src="https://github.com/user-attachments/assets/b4953528-7dba-4912-aad2-0c1c6635485d" />
+<img width="1918" height="967" alt="image" src="https://github.com/user-attachments/assets/26e316d4-a03f-4174-837b-45b974d3a102" />
+<img width="1918" height="966" alt="image" src="https://github.com/user-attachments/assets/f8c75772-5998-4eeb-bc2e-96561823737e" />
+<img width="1918" height="962" alt="image" src="https://github.com/user-attachments/assets/a3450cf6-bd21-439b-a82a-47bf1e6692b8" />
+
+
+## Images of the Circle Ci Pipeline:
+<img width="1918" height="967" alt="image" src="https://github.com/user-attachments/assets/2ae2b211-9d46-4b7e-a55c-57973aab63dc" />
+<img width="1918" height="968" alt="image" src="https://github.com/user-attachments/assets/381ebbb6-3172-4d32-a627-9844b5d70d5b" />
+<img width="1918" height="977" alt="image" src="https://github.com/user-attachments/assets/408f66ef-7d52-4879-9263-4bbdf7e733a1" />
+<img width="1918" height="963" alt="image" src="https://github.com/user-attachments/assets/1dcdd0f6-1e84-4acc-8d46-e73d97dbb7d8" />
+
+# SonarQube Cloud Link: 
+https://sonarcloud.io/summary/new_code?id=ST10322054_INSY7314-Part3-CI-CD-Pipeline&branch=main 
+# Circle Ci Pipeline Link:
+https://app.circleci.com/pipelines/github/ST10322054
+
+### ✅ Task 3 Requirements Checklist
+
+- [x] **Security Headers Middleware** (Comprehensive HTTP security headers)
+- [x] **Enhanced Input Validation** (Detailed validation with error messages)
+- [x] **CircleCI Pipeline** (6-stage automated CI/CD)
+- [x] **SonarQube Integration** (Code quality and security monitoring)
+- [x] **Quality Gates** (All metrics pass A rating)
+- [x] **Zero Vulnerabilities** (Confirmed by security scans)
+- [x] **Automated Security Audit** (npm audit in pipeline)
+- [x] **Documentation** (Complete setup and usage guides)
+
+---
+
+### 🐛 Troubleshooting Task 3
+
+#### Rate Limit Errors During Development
+
+**Problem:** Getting 429 errors too frequently while testing.
+
+**Solution:**
+```javascript
+// server/middleware/rateLimiter.js
+// Increase limits for development
+const generalRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'development' ? 1000 : 100
+});
+```
+
+#### CircleCI Pipeline Fails on Lint
+
+**Problem:** Pipeline fails at lint stage.
+
+**Solution:**
+```bash
+# Fix locally first
+cd server
+npm run lint -- --fix
+
+cd ../client
+npm run lint -- --fix
+
+# Commit fixes
+git add .
+git commit -m "fix: Resolve linting issues"
+git push
+```
+
+#### SonarQube Token Invalid
+
+**Problem:** SonarQube scan fails with authentication error.
+
+**Solution:**
+1. Go to SonarCloud → My Account → Security
+2. Generate new token
+3. Update in CircleCI:
+   - Project Settings → Environment Variables
+   - Update SONAR_TOKEN value
+4. Re-run pipeline
+
+#### Test Coverage Below Threshold
+
+**Problem:** Coverage drops below 70% after changes.
+
+**Solution:**
+```bash
+# Check which files lack coverage
+npm test -- --coverage
+
+# View detailed report
+open coverage/lcov-report/index.html
+
+# Add tests for uncovered code
+# Then re-run tests
+npm test -- --coverage
+```
+
+#### Database Locked During Tests
+
+**Problem:** Tests fail with "database is locked" error.
+
+**Solution:**
+```bash
+# Stop all running instances
+pkill -f "node server"
+
+# Remove lock file
+rm server/database.sqlite-journal
+
+# Restart
+npm test
+```
+
+---
 ## Known Issues & Considerations
 
 - **Self-signed SSL certificates**: Browser will show security warnings in development. Click "Advanced" and "Proceed to localhost" to continue.
