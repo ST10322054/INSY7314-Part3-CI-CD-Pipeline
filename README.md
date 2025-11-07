@@ -403,12 +403,108 @@ app.post('/api/auth/login', bruteforce.prevent, loginHandler);
 
 Task 3 represents a **major security and DevOps upgrade**, transforming the International Payments Portal into an **enterprise-grade, secure, and continuously monitored platform** with automated testing and deployment.
 
-### 🎯 What's New in Task 3
+###  What's New in Task 3
 
-#### 🔒 Enhanced Security Features (3 Major Additions)
+##  Administrator Guide: Adding Employees
 
-##### 1. Security Headers Middleware ✅
-**File:** `server/middleware/securityHeaders.js`
+Administrators can create employee accounts using Visual Studio Code's integrated terminal. Employees can then log in to verify and approve customer payments.
+
+### Method 1: Using VS Code Terminal (Recommended)
+
+#### Step 1: Open VS Code Terminal
+
+1. Open your project in Visual Studio Code
+2. Open the integrated terminal:
+   - **Windows/Linux:** Press `Ctrl + `` ` `` (Ctrl + Backtick)
+   - **Mac:** Press `Cmd + `` ` ``
+   - **Or:** Menu → View → Terminal
+
+You should see a terminal panel at the bottom of VS Code.
+
+#### Step 2: Navigate to Server Directory
+
+In the VS Code terminal, type:
+
+```bash
+cd server
+```
+
+Press Enter. You should now be in the `server` directory.
+
+#### Step 3: Create Employee Account
+
+Use the `createEmployee.js` script with this command format:
+
+```bash
+node createEmployee.js <username> <password> "Full Name"
+```
+
+**Example Commands:**
+
+```bash
+# Create an employee named John Doe
+node createEmployee.js john.doe SecureP@ss123! "John Doe"
+
+# Create an employee named Michael Brown
+node createEmployee.js michael.brown W0rk3rP@ss! "Michael Brown"
+```
+
+**Important Notes:**
+- Username should be lowercase, no spaces (use dots or underscores)
+- Password must meet security requirements (see below)
+- Full name must be in quotes if it contains spaces
+
+#### Step 4: Verify Creation
+
+After running the command, you should see:
+
+```bash
+✓ Employee created: john.doe
+
+Employee Details:
+├─ Username: john.doe
+├─ Full Name: John Doe
+```
+
+The employee can now log in to the employee portal at:
+- **URL:** `https://localhost:5173/employee`
+- **Username:** The username you created
+- **Password:** The password you set
+
+### Method 2: Using Git Bash (Alternative)
+
+If you prefer Git Bash:
+
+1. **Open Git Bash** in your project directory:
+   - Right-click in the project folder
+   - Select "Git Bash Here"
+
+2. **Navigate to server directory:**
+   ```bash
+   cd server
+   ```
+
+3. **Create employee:**
+   ```bash
+   node createEmployee.js username password "Full Name"
+   ```
+
+### Method 3: Using Command Prompt/PowerShell (Windows)
+
+1. **Open Command Prompt or PowerShell**
+2. **Navigate to project:**
+   ```cmd
+   cd C:\path\to\your\payment-portal\server
+   ```
+3. **Create employee:**
+   ```cmd
+   node createEmployee.js username password "Full Name"
+   ```
+
+
+####  Enhanced Security Features (3 Major Additions)
+
+##### 1. Security Headers Middleware 
 
 Comprehensive HTTP security headers automatically applied to all responses to protect against web vulnerabilities.
 
@@ -438,17 +534,11 @@ curl -I https://localhost:443/api/health
 
 **Usage:** Automatically applied - no changes needed to existing code!
 
-##### 2. Rate Limiting ✅
+##### 2. Rate Limiting 
 **File:** `server/middleware/rateLimiter.js`
 
 Advanced rate limiting to prevent brute force, credential stuffing, and DoS attacks - enhancing Task 2's express-brute implementation.
 
-**Rate Limits by Endpoint:**
-| Endpoint Type | Limit | Time Window | Applies To |
-|--------------|-------|-------------|------------|
-| Authentication | 5 requests | 15 minutes | `/api/auth/register`, `/api/auth/login` |
-| General API | 100 requests | 15 minutes | All other endpoints |
-| Payment Operations | 20 requests | 15 minutes | `/api/payments/*` |
 
 **How it Works:**
 - Tracks requests by IP address
@@ -489,7 +579,7 @@ for i in {1..6}; do
 done
 ```
 
-##### 3. Advanced Input Validation ✅
+##### 3. Advanced Input Validation 
 **File:** `server/middleware/inputValidation.js`
 
 Enhanced validation building on Task 2's RegEx patterns with comprehensive security checks and detailed error messages.
@@ -552,9 +642,9 @@ Password (Task 2 + Task 3):
 }
 ```
 
-#### 🚀 DevOps Features (3 Major Additions)
+####  DevOps Features (3 Major Additions)
 
-##### 4. CircleCI Pipeline ✅
+##### 4. CircleCI Pipeline 
 **File:** `.circleci/config.yml`
 
 Automated CI/CD pipeline that runs comprehensive tests and security checks on every commit to GitHub.
@@ -570,12 +660,12 @@ Automated CI/CD pipeline that runs comprehensive tests and security checks on ev
 [![CircleCI](https://circleci.com/gh/YOUR_USERNAME/payment-portal.svg?style=svg)](https://circleci.com/gh/YOUR_USERNAME/payment-portal)
 ```
 
-##### 5. SonarQube Integration ✅
+##### 5. SonarQube Integration 
 **File:** `sonar-project.properties`
 
 Continuous code quality and security monitoring integrated with CircleCI pipeline.
 
-**Current Quality Metrics:**
+**Current Quality Metrics (Example):**
 | Metric | Description | Target | Current | Status |
 |--------|-------------|--------|---------|--------|
 | **Bugs** | Code defects | 0 | 0 | ✅ A |
